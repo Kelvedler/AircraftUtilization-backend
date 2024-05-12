@@ -1,0 +1,26 @@
+services:
+  mongo:
+    image: mongo:7.0.7-jammy
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: local_user
+      MONGO_INITDB_ROOT_PASSWORD: local_pass
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+  postgres:
+    image: postgres:15.4-alpine3.18
+    environment:
+      - POSTGRES_DB=local_db
+      - POSTGRES_USER=local_user
+      - POSTGRES_PASSWORD=local_pass
+      - PGPORT=5433
+    ports:
+      - "127.0.0.1:5433:5433"
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+volumes:
+  mongo_data:
+  mongo_config:
+  pg_data:
