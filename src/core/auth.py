@@ -6,32 +6,27 @@ from binascii import Error as BinasciiError
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import Depends
-from fastapi.exceptions import HTTPException
 from fastapi.security import APIKeyHeader
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.orm import Session
 
-from core import models
+from core import http_errors, models
 from core.crud import api_user_get_by_name, api_user_increment_uses
 from core.postgres import get_db
 
 
 class ApiKey:
     def __init__(self, key: str, db: Session) -> None:
-        self.unauthenticated = HTTPException(
-            status_code=403, detail="Not authenticated"
-        )
-        self.internal = HTTPException(status_code=500, detail="Internal server error")
         self.logger = logging.getLogger(__name__)
 
         try:
             prefix, secret = key.split(".")
         except ValueError:
-            raise self.unauthenticated
+            raise http_errors.HTTPUnauthorized()
         try:
             self.subject = base64.urlsafe_b64decode(prefix).decode("utf-8")
         except BinasciiError:
-            raise self.unauthenticated
+            raise http_errors.HTTPUnauthorized()
         self.secret = secret
         self.db_session = db
         self.api_user: Optional[models.ApiUser]
@@ -56,12 +51,12 @@ class ApiKey:
     async def perform_api_use(self) -> None:
         api_user = await self._get_user()
         if not api_user or not self._secrets_equal(api_user=api_user):
-            raise self.unauthenticated
+            raise http_errors.HTTPUnauthorized()
         try:
             await api_user_increment_uses(db=self.db_session, api_user=api_user)
         except IntegrityError as e:
             self.logger.error(e)
-            raise self.internal
+            raise http_errors.HTTPInternal()
 
 
 async def authenticate(
