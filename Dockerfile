@@ -4,14 +4,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   supervisor
 
 RUN python -m pip install --upgrade pip
-RUN pip install pipenv
 
 WORKDIR /app
 
 COPY ./supervisord.conf /etc/supervisor/conf.d/main.conf
-COPY ./Pipfile /app/Pipfile
+COPY ./requirements.txt /app/requirements.txt
 
-RUN pipenv install --deploy --ignore-pipfile --python /usr/local/bin/python3
+RUN pip install -r ./requirements.txt
 
 COPY ./src /app
 
