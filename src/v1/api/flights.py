@@ -19,7 +19,7 @@ router = APIRouter()
 )
 async def get_flights(
     mongodb: MongodbConn,
-    page: Annotated[int, Query(ge=1, le=1000)] = 1,
+    page: Annotated[int, Query(ge=1, le=1_000_000)] = 1,
     icao24: Annotated[Union[str, None], Query(min_length=6, max_length=6)] = None,
     landed_interval: schemas.LandedInterval = Depends(),
     duration_interval: schemas.DurationInterval = Depends(),
