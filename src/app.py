@@ -18,7 +18,7 @@ def create_app() -> FastAPI:
     http_internal = HTTPInternal()
     app.add_exception_handler(http_internal.status_code, http_internal.handler)
 
-    app.include_router(v1_api.router, prefix="/api/v1")
+    app.include_router(v1_api.router, prefix="/v1")
     return app
 
 

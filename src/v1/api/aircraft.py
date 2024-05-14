@@ -18,7 +18,7 @@ router = APIRouter()
 )
 async def get_aircraft(
     mongodb: MongodbConn,
-    page: Annotated[int, Query(ge=1, le=1000)] = 1,
+    page: Annotated[int, Query(ge=1, le=100_000)] = 1,
 ):
     aircraft = await crud.aircraft_get_page(page=page, db=mongodb)
     return aircraft
