@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Self
+from typing import Optional, Self
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
@@ -15,6 +15,12 @@ class Flights(BaseModel):
     icao24: str = Field(min_length=6, max_length=6, examples=["abc123"])
     duration_minutes: PositiveInt = Field(examples=[50])
     landed_at: PositiveInt = Field(examples=[946677600])
+    manufacturer_icao: Optional[str] = Field(examples=["AIRBUS"])
+    model: Optional[str] = Field(examples=["A350-1041"])
+    registration: Optional[str] = Field(examples=["A7-ANF"])
+    built: Optional[date] = Field(examples=["2016-01-01"])
+    owner: Optional[str] = Field(examples=["Eurowings"])
+    operator: Optional[str] = Field(examples=["Qatar Airways"])
 
 
 class LandedInterval(BaseModel):

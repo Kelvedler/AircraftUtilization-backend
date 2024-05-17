@@ -60,6 +60,12 @@ async def get_page(
                 icao24=item["icao24"],
                 duration_minutes=item["duration_minutes"],
                 landed_at=to_timestamp(dt=landed_at),
+                manufacturer_icao=item["manufacturer_icao"],
+                model=item["model"],
+                registration=item["registration"],
+                built=item["built"],
+                owner=item["owner"],
+                operator=item["operator"],
             )
         )
     return flights
