@@ -1,7 +1,6 @@
-import logging
 from datetime import UTC, datetime
-
-import pymongo
+import logging
+import math
 
 from core import schemas
 from core.mongodb import MongodbConn
@@ -17,42 +16,50 @@ async def get_page(
     landed_interval: schemas.LandedInterval,
     duration_interval: schemas.DurationInterval,
     db: MongodbConn,
-) -> list[schemas.Flights]:
-    filter: dict[str, str | dict[str, datetime] | dict[str, int]] = {}
+) -> schemas.FlightsPage:
+    documents_to_skip = (page - 1) * settings.items_per_page
+    pipeline: list[dict] = []
     if icao24:
-        filter["icao24"] = icao24
-
-    landed_at_filter: dict[str, datetime] = {}
+        pipeline.append({"$match": {"icao24": icao24}})
+    landed_filter = {}
+    duration_filter = {}
+    match: dict[str, dict[str, int] | dict[str, datetime]] = {}
     if landed_interval.landed_gte:
-        landed_at_filter["$gte"] = datetime.combine(
-            landed_interval.landed_gte, datetime.min.time()
-        ).replace(tzinfo=UTC)
+        landed_min = datetime.combine(landed_interval.landed_gte, datetime.min.time())
+        landed_filter["$gte"] = landed_min
     if landed_interval.landed_lte:
-        landed_at_filter["$lte"] = datetime.combine(
-            landed_interval.landed_lte, datetime.max.time()
-        ).replace(tzinfo=UTC)
+        landed_max = datetime.combine(landed_interval.landed_lte, datetime.max.time())
+        landed_filter["$lte"] = landed_max
+    if landed_filter:
+        match["landed_at"] = landed_filter
 
-    if landed_at_filter:
-        filter["landed_at"] = landed_at_filter
-
-    duration_filter: dict[str, int] = {}
     if duration_interval.duration_gte:
         duration_filter["$gte"] = duration_interval.duration_gte
     if duration_interval.duration_lte:
         duration_filter["$lte"] = duration_interval.duration_lte
-
     if duration_filter:
-        filter["duration_minutes"] = duration_filter
+        match["duration_minutes"] = duration_filter
 
-    logger.debug(f"flights filter: {filter}")
+    if match:
+        pipeline.append({"$match": match})
 
-    documents_to_skip = (page - 1) * settings.items_per_page
-    cursor = db.flights.find(
-        filter=filter, skip=documents_to_skip, limit=settings.items_per_page
-    ).sort([("landed_at", pymongo.DESCENDING)])
+    pipeline.append(
+        {
+            "$facet": {
+                "flights": [
+                    {"$skip": documents_to_skip},
+                    {"$limit": settings.items_per_page},
+                ],
+                "total": [{"$count": "flights"}],
+            }
+        }
+    )
 
+    logger.debug(f"Flights pipeline: {pipeline}")
+
+    result = next(db.flights.aggregate(pipeline=pipeline))
     flights: list[schemas.Flights] = []
-    for item in cursor:
+    for item in result["flights"]:
         landed_at: datetime = item["landed_at"].replace(tzinfo=UTC)
         flights.append(
             schemas.Flights(
@@ -68,4 +75,7 @@ async def get_page(
                 operator=item["operator"],
             )
         )
-    return flights
+    total_facet = result["total"]
+    results_total = total_facet[0]["flights"] if total_facet else 0
+    pages_total = math.ceil(results_total / settings.items_per_page)
+    return schemas.FlightsPage(results=flights, pages_total=pages_total)

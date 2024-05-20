@@ -4,7 +4,7 @@ from typing import Optional, Self
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from pydantic.functional_validators import model_validator
-from pydantic.types import PositiveInt
+from pydantic.types import NonNegativeInt, PositiveInt
 
 from core.settings import settings
 from core.types_ import ObjectId
@@ -21,6 +21,11 @@ class Flights(BaseModel):
     built: Optional[date] = Field(examples=["2016-01-01"])
     owner: Optional[str] = Field(examples=["Eurowings"])
     operator: Optional[str] = Field(examples=["Qatar Airways"])
+
+
+class FlightsPage(BaseModel):
+    pages_total: NonNegativeInt = Field(examples=[10])
+    results: list[Flights]
 
 
 class LandedInterval(BaseModel):
