@@ -1,2 +1,2 @@
-from .flights import Flights, LandedInterval, DurationInterval
-from .aircraft import Aircraft
+from .flights import Flights, FlightsPage, LandedInterval, DurationInterval
+from .aircraft import Aircraft, AircraftPage, BuiltInterval
