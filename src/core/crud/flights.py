@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 async def get_page(
     page: int,
     icao24: str | None,
+    model: str | None,
+    manufacturer: str | None,
+    owner: str | None,
+    operator: str | None,
     landed_interval: schemas.LandedInterval,
     duration_interval: schemas.DurationInterval,
     db: MongodbConn,
@@ -21,6 +25,14 @@ async def get_page(
     pipeline: list[dict] = []
     if icao24:
         pipeline.append({"$match": {"icao24": icao24}})
+    if model:
+        pipeline.append({"$match": {"model": model}})
+    if manufacturer:
+        pipeline.append({"$match": {"manufacturer_icao": manufacturer}})
+    if owner:
+        pipeline.append({"$match": {"owner": owner}})
+    if operator:
+        pipeline.append({"$match": {"operator": operator}})
     landed_filter = {}
     duration_filter = {}
     match: dict[str, dict[str, int] | dict[str, datetime]] = {}

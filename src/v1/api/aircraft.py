@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
-from fastapi.param_functions import Depends
+from fastapi.param_functions import Depends, Query
+from fastapi.routing import APIRouter
 
 from core import crud, http_errors
 from core import schemas

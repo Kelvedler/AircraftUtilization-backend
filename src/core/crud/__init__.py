@@ -4,3 +4,4 @@ from .api_user import (
     get_by_name as api_user_get_by_name,
     increment_uses as api_user_increment_uses,
 )
+from .metrics import operator_get_page as metrics_operator_get_page
