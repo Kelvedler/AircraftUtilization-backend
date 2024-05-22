@@ -3,6 +3,11 @@ import logging
 import math
 
 from core import schemas
+from core.crud.filters import (
+    apply_duration_interval,
+    apply_landed_interval,
+    apply_match,
+)
 from core.mongodb import MongodbConn
 from core.settings import settings
 from core.time import to_timestamp
@@ -23,38 +28,16 @@ async def get_page(
 ) -> schemas.FlightsPage:
     documents_to_skip = (page - 1) * settings.items_per_page
     pipeline: list[dict] = []
-    if icao24:
-        pipeline.append({"$match": {"icao24": icao24}})
-    if model:
-        pipeline.append({"$match": {"model": model}})
-    if manufacturer:
-        pipeline.append({"$match": {"manufacturer_icao": manufacturer}})
-    if owner:
-        pipeline.append({"$match": {"owner": owner}})
-    if operator:
-        pipeline.append({"$match": {"operator": operator}})
-    landed_filter = {}
-    duration_filter = {}
-    match: dict[str, dict[str, int] | dict[str, datetime]] = {}
-    if landed_interval.landed_gte:
-        landed_min = datetime.combine(landed_interval.landed_gte, datetime.min.time())
-        landed_filter["$gte"] = landed_min
-    if landed_interval.landed_lte:
-        landed_max = datetime.combine(landed_interval.landed_lte, datetime.max.time())
-        landed_filter["$lte"] = landed_max
-    if landed_filter:
-        match["landed_at"] = landed_filter
-
-    if duration_interval.duration_gte:
-        duration_filter["$gte"] = duration_interval.duration_gte
-    if duration_interval.duration_lte:
-        duration_filter["$lte"] = duration_interval.duration_lte
-    if duration_filter:
-        match["duration_minutes"] = duration_filter
-
-    if match:
-        pipeline.append({"$match": match})
-
+    apply_match(
+        pipeline=pipeline,
+        icao24=icao24,
+        model=model,
+        manufacturer_icao=manufacturer,
+        owner=owner,
+        operator=operator,
+    )
+    apply_landed_interval(pipeline=pipeline, landed_interval=landed_interval)
+    apply_duration_interval(pipeline=pipeline, duration_interval=duration_interval)
     pipeline.append(
         {
             "$facet": {

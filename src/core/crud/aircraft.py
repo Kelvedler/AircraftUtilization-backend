@@ -1,7 +1,7 @@
-from datetime import datetime
 import math
 import logging
 from core import schemas
+from core.crud.filters import apply_built_interval, apply_match
 from core.mongodb import MongodbConn
 from core.settings import settings
 
@@ -23,23 +23,14 @@ async def get_page(
 ) -> schemas.AircraftPage:
     documents_to_skip = (page - 1) * settings.items_per_page
     pipeline: list[dict] = []
-    if model:
-        pipeline.append({"$match": {"model": model}})
-    if manufacturer:
-        pipeline.append({"$match": {"manufacturer_icao": manufacturer}})
-    if owner:
-        pipeline.append({"$match": {"owner": owner}})
-    if operator:
-        pipeline.append({"$match": {"operator": operator}})
-    built_filter = {}
-    if built_interval.built_gte:
-        built_min = datetime.combine(built_interval.built_gte, datetime.max.time())
-        built_filter["$gte"] = built_min
-    if built_interval.built_lte:
-        built_max = datetime.combine(built_interval.built_lte, datetime.min.time())
-        built_filter["$lte"] = built_max
-    if built_filter:
-        pipeline.append({"$match": {"built": built_filter}})
+    apply_match(
+        pipeline=pipeline,
+        model=model,
+        manufacturer_icao=manufacturer,
+        owner=owner,
+        operator=operator,
+    )
+    apply_built_interval(pipeline=pipeline, built_interval=built_interval)
     pipeline.append(
         {
             "$group": {

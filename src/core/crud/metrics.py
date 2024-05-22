@@ -1,8 +1,8 @@
-from datetime import datetime
 from decimal import Decimal
 import logging
 
 from core import schemas
+from core.crud.filters import apply_built_interval, apply_landed_interval, apply_match
 from core.mongodb import MongodbConn
 
 logger = logging.getLogger(__name__)
@@ -12,20 +12,13 @@ async def operator_get_page(
     operators: list[str],
     owner: str | None,
     built_interval: schemas.BuiltInterval,
+    landed_interval: schemas.LandedInterval,
     db: MongodbConn,
 ) -> list[schemas.OperatorMetric]:
     pipeline: list[dict] = [{"$match": {"operator": {"$in": operators}}}]
-    if owner:
-        pipeline.append({"$match": {"owner": owner}})
-    built_filter = {}
-    if built_interval.built_gte:
-        built_min = datetime.combine(built_interval.built_gte, datetime.max.time())
-        built_filter["$gte"] = built_min
-    if built_interval.built_lte:
-        built_max = datetime.combine(built_interval.built_lte, datetime.min.time())
-        built_filter["$lte"] = built_max
-    if built_filter:
-        pipeline.append({"$match": {"built": built_filter}})
+    apply_match(pipeline=pipeline, owner=owner)
+    apply_built_interval(pipeline=pipeline, built_interval=built_interval)
+    apply_landed_interval(pipeline=pipeline, landed_interval=landed_interval)
     pipeline.append(
         {
             "$group": {
@@ -34,6 +27,7 @@ async def operator_get_page(
                 "models": {"$addToSet": "$model"},
                 "flights_recorded": {"$count": {}},
                 "flight_duration_avg": {"$avg": "$duration_minutes"},
+                "flight_days": {"$addToSet": {"$dayOfYear": "$landed_at"}},
             }
         }
     )
@@ -45,6 +39,12 @@ async def operator_get_page(
                 "models": 1,
                 "flights_recorded": 1,
                 "flight_duration_avg": 1,
+                "cycles_per_day": {
+                    "$divide": [
+                        "$flights_recorded",
+                        {"$size": "$flight_days"},
+                    ]
+                },
             }
         }
     )
@@ -62,6 +62,7 @@ async def operator_get_page(
                 models=[i for i in item["models"] if isinstance(i, str)],
                 flights_recorded=item["flights_recorded"],
                 flight_duration_avg=round(Decimal(item["flight_duration_avg"]), 2),
+                cycles_per_day=round(Decimal(item["cycles_per_day"]), 2),
             )
         )
 
