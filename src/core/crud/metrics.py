@@ -40,9 +40,10 @@ async def operator_get_page(
                 "flights_recorded": 1,
                 "flight_duration_avg": 1,
                 "cycles_per_day": {
-                    "$divide": [
-                        "$flights_recorded",
-                        {"$size": "$flight_days"},
+                    "$cond": [
+                        {"$eq": [{"$size": "$flight_days"}, 0]},
+                        0,
+                        {"$divide": ["$flights_recorded", {"$size": "$flight_days"}]},
                     ]
                 },
             }
