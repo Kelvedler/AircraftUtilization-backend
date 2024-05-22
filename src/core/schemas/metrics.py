@@ -10,3 +10,4 @@ class OperatorMetric(BaseModel):
     models: list[str] = Field(examples=[["B737", "B737 NG"]])
     flights_recorded: PositiveInt = Field(examples=[10])
     flight_duration_avg: Decimal = Field(examples=[72.4])
+    cycles_per_day: Decimal = Field(examples=[8.2])

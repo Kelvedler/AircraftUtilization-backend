@@ -27,11 +27,13 @@ async def get_metrics_for_operators(
     ] = [],
     owner: Annotated[str | None, Query(min_length=3, max_length=50)] = None,
     built_interval: schemas.BuiltInterval = Depends(),
+    landed_interval: schemas.LandedInterval = Depends(),
 ):
     operators_metric = await crud.metrics_operator_get_page(
         operators=operator,
         owner=owner,
         built_interval=built_interval,
+        landed_interval=landed_interval,
         db=mongodb,
     )
     return operators_metric
